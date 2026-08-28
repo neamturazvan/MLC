@@ -95,3 +95,9 @@ configure_file(
         COPYONLY
 )
 
+configure_file(
+        ${CMAKE_CURRENT_SOURCE_DIR}/data/one_sample.csv
+        ${CMAKE_CURRENT_BINARY_DIR}/one_sample.csv
+        COPYONLY
+)
+

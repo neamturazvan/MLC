@@ -12,5 +12,6 @@ MLCStatus mlc_dataset_create(size_t sample_count, size_t feature_count, size_t t
 void mlc_dataset_free(MLCDataset *dataset);
 MLCStatus mlc_dataset_load_csv(const char *filepath, size_t target_count, bool has_header, MLCDataset *output_dataset);
 MLCStatus mlc_dataset_shuffle(MLCDataset *dataset, uint32_t seed);
+MLCStatus mlc_dataset_train_test_split(const MLCDataset *dataset, double training_ratio, MLCDataset *training_dataset, MLCDataset *testing_dataset);
 
 #endif //MLC_DATASET_H

@@ -66,7 +66,7 @@ MLCStatus mlc_dataset_load_csv(const char *filepath, size_t target_count, bool h
         }
         return MLC_STATUS_PARSE_ERROR;
     }
-    if (strchr(line, '\n') == NULL) {
+    if (strchr(line, '\n') == NULL && !feof(file)) {
         fclose(file);
         return MLC_STATUS_PARSE_ERROR;
     }
@@ -229,6 +229,50 @@ MLCStatus mlc_dataset_shuffle(MLCDataset *dataset, uint32_t seed) {
             dataset->targets.data[index_i] = dataset->targets.data[index_j];
             dataset->targets.data[index_j] = aux;
         }
-        return MLC_STATUS_SUCCESS;
     }
+    return MLC_STATUS_SUCCESS;
 }
+
+MLCStatus mlc_dataset_train_test_split(const MLCDataset *dataset, double training_ratio, MLCDataset *training_dataset, MLCDataset *testing_dataset) {
+    if (dataset == NULL || training_dataset == NULL || testing_dataset == NULL) {
+        return MLC_STATUS_INVALID_ARGUMENT;
+    }
+    if (dataset->features.data == NULL || dataset->targets.data == NULL) {
+        return MLC_STATUS_INVALID_ARGUMENT;
+    }
+    if (training_dataset->features.data != NULL || training_dataset->features.columns != 0 || training_dataset->features.rows != 0 ||
+        training_dataset->targets.data != NULL || training_dataset->targets.columns != 0 || training_dataset->targets.rows != 0) {
+        return MLC_STATUS_INVALID_ARGUMENT;
+    }
+    if (testing_dataset->features.data != NULL || testing_dataset->features.columns != 0 || testing_dataset->features.rows != 0 ||
+        testing_dataset->targets.data != NULL || testing_dataset->targets.columns != 0 || testing_dataset->targets.rows != 0) {
+        return MLC_STATUS_INVALID_ARGUMENT;
+    }
+    if (training_ratio <= 0.0 || training_ratio >= 1.0) {
+        return MLC_STATUS_INVALID_ARGUMENT;
+    }
+    if (dataset->features.rows != dataset->targets.rows) {
+        return MLC_STATUS_DIMENSIONS_MISMATCH;
+    }
+    size_t training_sample_count = (size_t)(training_ratio * dataset->features.rows);
+    size_t testing_sample_count = dataset->features.rows - training_sample_count;
+    if (training_sample_count == 0 || testing_sample_count == 0) {
+        return MLC_STATUS_INVALID_DIMENSIONS;
+    }
+    MLCStatus create_status = mlc_dataset_create(training_sample_count, dataset->features.columns, dataset->targets.columns, training_dataset);
+    if (create_status != MLC_STATUS_SUCCESS) {
+        return create_status;
+    }
+    create_status = mlc_dataset_create(testing_sample_count, dataset->features.columns, dataset->targets.columns, testing_dataset);
+    if (create_status != MLC_STATUS_SUCCESS) {
+        mlc_dataset_free(training_dataset);
+        return create_status;
+    }
+    memcpy(training_dataset->features.data, dataset->features.data, training_sample_count * dataset->features.columns * sizeof(double));
+    memcpy(training_dataset->targets.data, dataset->targets.data, training_sample_count * dataset->targets.columns * sizeof(double));
+
+    memcpy(testing_dataset->features.data, dataset->features.data + training_sample_count * dataset->features.columns, testing_sample_count * dataset->features.columns * sizeof(double));
+    memcpy(testing_dataset->targets.data, dataset->targets.data + training_sample_count * dataset->targets.columns, testing_sample_count * dataset->targets.columns * sizeof(double));
+    return MLC_STATUS_SUCCESS;
+}
+
