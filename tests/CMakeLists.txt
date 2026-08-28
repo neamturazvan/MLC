@@ -89,3 +89,9 @@ configure_file(
         COPYONLY
 )
 
+configure_file(
+        ${CMAKE_CURRENT_SOURCE_DIR}/data/shuffle_test.csv
+        ${CMAKE_CURRENT_BINARY_DIR}/shuffle_test.csv
+        COPYONLY
+)
+

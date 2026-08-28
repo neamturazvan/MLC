@@ -194,3 +194,41 @@ MLCStatus mlc_dataset_load_csv(const char *filepath, size_t target_count, bool h
     return MLC_STATUS_SUCCESS;
 }
 
+MLCStatus mlc_dataset_shuffle(MLCDataset *dataset, uint32_t seed) {
+    if (dataset == NULL) {
+        return MLC_STATUS_INVALID_ARGUMENT;
+    }
+    if (dataset->features.data == NULL || dataset->targets.data == NULL) {
+        return MLC_STATUS_INVALID_ARGUMENT;
+    }
+    if (dataset->features.rows == 0 || dataset->features.columns == 0 || dataset->targets.rows == 0 || dataset->targets.columns == 0) {
+        return MLC_STATUS_INVALID_DIMENSIONS;
+    }
+    if (dataset->features.rows != dataset->targets.rows) {
+        return MLC_STATUS_DIMENSIONS_MISMATCH;
+    }
+    if (dataset->features.rows == 1) {
+        return MLC_STATUS_SUCCESS;
+    }
+    uint32_t state = seed;
+    size_t row_count = dataset->features.rows;
+    for (size_t i = row_count - 1; i > 0; --i) {
+        state = state * 1664525u + 1013904223u;
+        size_t j = state % (i + 1);
+        for (size_t k = 0; k < dataset->features.columns; ++k) {
+            size_t index_i = i * dataset->features.columns + k;
+            size_t index_j = j * dataset->features.columns + k;
+            double aux = dataset->features.data[index_i];
+            dataset->features.data[index_i] = dataset->features.data[index_j];
+            dataset->features.data[index_j] = aux;
+        }
+        for (size_t k = 0; k < dataset->targets.columns; ++k) {
+            size_t index_i = i * dataset->targets.columns + k;
+            size_t index_j = j * dataset->targets.columns + k;
+            double aux = dataset->targets.data[index_i];
+            dataset->targets.data[index_i] = dataset->targets.data[index_j];
+            dataset->targets.data[index_j] = aux;
+        }
+        return MLC_STATUS_SUCCESS;
+    }
+}

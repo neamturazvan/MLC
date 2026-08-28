@@ -114,6 +114,48 @@ static void test_dataset_load_csv_overlong_row() {
 
 }
 
+static void test_dataset_reproducibility_and_pairing() {
+    MLCDataset test_dataset1 = {0}, test_dataset2 = {0};
+    assert(mlc_dataset_load_csv("shuffle_test.csv", 1, false, &test_dataset1) == MLC_STATUS_SUCCESS);
+    assert(mlc_dataset_load_csv("shuffle_test.csv", 1, false, &test_dataset2) == MLC_STATUS_SUCCESS);
+    MLCStatus shuffle_status1 = mlc_dataset_shuffle(&test_dataset1, 42);
+    MLCStatus shuffle_status2 = mlc_dataset_shuffle(&test_dataset2, 42);
+    assert(shuffle_status1 == MLC_STATUS_SUCCESS && shuffle_status2 == MLC_STATUS_SUCCESS);
+    for (size_t i = 0; i < test_dataset1.features.rows * test_dataset1.features.columns; ++i) {
+        assert(test_dataset1.features.data[i] == test_dataset2.features.data[i]);
+    }
+    for (size_t i = 0; i < test_dataset1.targets.rows * test_dataset1.targets.columns; ++i) {
+        assert(test_dataset1.targets.data[i] == test_dataset2.targets.data[i]);
+    }
+    bool seen[5] = {false};
+    for (size_t i = 0; i < test_dataset1.features.rows; ++i) {
+        size_t index_features = i * test_dataset1.features.columns;
+        size_t index_targets = i * test_dataset2.targets.columns;
+        assert(test_dataset1.features.data[index_features] + 100 == test_dataset1.features.data[index_features + 1]);
+        assert(test_dataset1.features.data[index_features] + 1000 == test_dataset1.targets.data[index_targets]);
+        assert(test_dataset1.features.data[index_features] >= 0 && test_dataset1.features.data[index_features] <= 4);
+        seen[(size_t)test_dataset1.features.data[index_features]] = true;
+    }
+    for (size_t i = 0; i < 5; ++i) {
+        assert(seen[i] == true);
+    }
+    mlc_dataset_free(&test_dataset1);
+    mlc_dataset_free(&test_dataset2);
+}
+
+static void test_shuffle_validation() {
+    MLCDataset test_dataset = {0};
+    assert(mlc_dataset_shuffle(NULL, 42) == MLC_STATUS_INVALID_ARGUMENT);
+    assert(mlc_dataset_shuffle(&test_dataset, 42) == MLC_STATUS_INVALID_ARGUMENT);
+    mlc_matrix_create(2,3,&test_dataset.features);
+    mlc_matrix_create(3,3,&test_dataset.targets);
+    assert(mlc_dataset_shuffle(&test_dataset, 42) == MLC_STATUS_DIMENSIONS_MISMATCH);
+    mlc_dataset_free(&test_dataset);
+    mlc_matrix_create(1,4,&test_dataset.features);
+    mlc_matrix_create(1,1,&test_dataset.targets);
+    assert(mlc_dataset_shuffle(&test_dataset, 42) == MLC_STATUS_SUCCESS);
+}
+
 int main(void) {
     test_dataset_create_and_free();
     test_dataset_load_csv_with_header();
@@ -123,4 +165,6 @@ int main(void) {
     test_dataset_load_csv_malformed_rows();
     test_dataset_load_csv_invalid_shapes();
     test_dataset_load_csv_overlong_row();
+    test_dataset_reproducibility_and_pairing();
+    test_shuffle_validation();
 }

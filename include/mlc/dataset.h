@@ -11,6 +11,6 @@ typedef struct {
 MLCStatus mlc_dataset_create(size_t sample_count, size_t feature_count, size_t targe_count, MLCDataset *output_dataset);
 void mlc_dataset_free(MLCDataset *dataset);
 MLCStatus mlc_dataset_load_csv(const char *filepath, size_t target_count, bool has_header, MLCDataset *output_dataset);
-
+MLCStatus mlc_dataset_shuffle(MLCDataset *dataset, uint32_t seed);
 
 #endif //MLC_DATASET_H
