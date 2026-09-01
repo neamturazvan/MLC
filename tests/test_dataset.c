@@ -219,6 +219,77 @@ static void test_dataset_train_test_split_invalid_state() {
     assert(mlc_dataset_train_test_split(&original, 0.5, &training, &testing) == MLC_STATUS_INVALID_DIMENSIONS);
 }
 
+static void test_standard_scaler_fit() {
+    MLCDataset dataset = {0};
+    MLCStandardScaler scaler = {0};
+    assert(mlc_dataset_load_csv("shuffle_test.csv", 1, false, &dataset) == MLC_STATUS_SUCCESS);
+    assert(mlc_standard_scaler_fit(&dataset, &scaler) == MLC_STATUS_SUCCESS);
+    assert(scaler.means.rows == 1 && scaler.means.columns == 2);
+    assert(scaler.standard_deviations.rows == 1 && scaler.standard_deviations.columns == 2);
+    assert(scaler.means.data[0] == 2);
+    assert(scaler.means.data[1] == 102);
+    assert(fabs(scaler.standard_deviations.data[0] - sqrt(2)) < 1e-9);
+    assert(fabs(scaler.standard_deviations.data[1] - sqrt(2)) < 1e-9);
+    mlc_dataset_free(&dataset);
+    mlc_matrix_free(&scaler.means);
+    mlc_matrix_free(&scaler.standard_deviations);
+
+}
+
+static void test_standard_scaler_transform() {
+    MLCDataset dataset = {0}, training = {0}, testing = {0};
+    MLCStandardScaler scaler = {0};
+    assert(mlc_dataset_load_csv("shuffle_test.csv", 1, false, &dataset) == MLC_STATUS_SUCCESS);
+    assert(mlc_dataset_train_test_split(&dataset, 0.6, &training, &testing) == MLC_STATUS_SUCCESS);
+    assert(mlc_standard_scaler_fit(&training, &scaler) == MLC_STATUS_SUCCESS);
+    assert(mlc_standard_scaler_transform(&scaler, &training) == MLC_STATUS_SUCCESS);
+    assert(mlc_standard_scaler_transform(&scaler, &testing) == MLC_STATUS_SUCCESS);
+    assert(fabs(training.features.data[0] + 1.224744871) < 1e-9);
+    assert(fabs(training.features.data[1] + 1.224744871) < 1e-9);
+    assert(fabs(training.features.data[2]) < 1e-9);
+    assert(fabs(training.features.data[3]) < 1e-9);
+    assert(fabs(training.features.data[4] - 1.224744871) < 1e-9);
+    assert(fabs(training.features.data[5] - 1.224744871) < 1e-9);
+    assert(fabs(testing.features.data[0] - 2.449489743) < 1e-9);
+    assert(fabs(testing.features.data[1] - 2.449489743) < 1e-9);
+    assert(fabs(testing.features.data[2] - 3.674234614) < 1e-9);
+    assert(fabs(testing.features.data[3] - 3.674234614) < 1e-9);
+}
+
+static void test_standard_scaler_edge_cases() {
+    MLCDataset dataset = {0};
+    MLCStandardScaler scaler = {0};
+    assert(mlc_dataset_load_csv("edge_cases_standard_scaler.csv", 1, false, &dataset) == MLC_STATUS_SUCCESS);
+    assert(mlc_standard_scaler_fit(&dataset, &scaler) == MLC_STATUS_SUCCESS);
+    assert(scaler.means.data[0] == 5);
+    assert(scaler.standard_deviations.data[0] == 0);
+    assert(mlc_standard_scaler_transform(&scaler, &dataset) == MLC_STATUS_SUCCESS);
+    assert(dataset.features.data[0] == 0);
+    assert(dataset.features.data[2] == 0);
+    assert(dataset.features.data[4] == 0);
+    assert(fabs(dataset.features.data[1] + 1.224744871) < 1e-9);
+    assert(fabs(dataset.features.data[3]) < 1e-9);
+    assert(fabs(dataset.features.data[5] - 1.224744871) < 1e-9);
+    mlc_matrix_free(&scaler.means);
+    mlc_matrix_free(&scaler.standard_deviations);
+    mlc_dataset_free(&dataset);
+    assert(mlc_standard_scaler_fit(NULL, &scaler) == MLC_STATUS_INVALID_ARGUMENT);
+    assert(mlc_standard_scaler_fit(&dataset, NULL) == MLC_STATUS_INVALID_ARGUMENT);
+    assert(mlc_dataset_load_csv("edge_cases_standard_scaler.csv", 1, false, &dataset) == MLC_STATUS_SUCCESS);
+    assert(mlc_standard_scaler_fit(&dataset, &scaler) == MLC_STATUS_SUCCESS);
+    assert(mlc_standard_scaler_fit(&dataset, &scaler) == MLC_STATUS_INVALID_ARGUMENT);
+    assert(mlc_standard_scaler_transform(NULL, &dataset) == MLC_STATUS_INVALID_ARGUMENT);
+    assert(mlc_standard_scaler_transform(&scaler, NULL) == MLC_STATUS_INVALID_ARGUMENT);
+    mlc_matrix_free(&scaler.means);
+    mlc_matrix_free(&scaler.standard_deviations);
+    assert(mlc_standard_scaler_transform(&scaler, &dataset) == MLC_STATUS_INVALID_ARGUMENT);
+    assert(mlc_standard_scaler_fit(&dataset, &scaler) == MLC_STATUS_SUCCESS);
+    MLCDataset different_column_dataset = {0};
+    assert(mlc_dataset_load_csv("valid_without_header.csv", 1, false, &different_column_dataset) == MLC_STATUS_SUCCESS);
+    assert(mlc_standard_scaler_transform(&scaler, &different_column_dataset) == MLC_STATUS_DIMENSIONS_MISMATCH);
+
+}
+
 int main(void) {
     test_dataset_create_and_free();
     test_dataset_load_csv_with_header();
@@ -233,4 +304,8 @@ int main(void) {
     test_dataset_train_test_split();
     test_dataset_train_test_split_invalid_arguments();
     test_dataset_train_test_split_invalid_state();
+    test_standard_scaler_fit();
+    test_standard_scaler_transform();
+    test_standard_scaler_edge_cases();
+    test_standard_scaler_edge_cases();
 }

@@ -240,6 +240,9 @@ MLCStatus mlc_dataset_train_test_split(const MLCDataset *dataset, double trainin
     if (dataset->features.data == NULL || dataset->targets.data == NULL) {
         return MLC_STATUS_INVALID_ARGUMENT;
     }
+    if (dataset->features.rows == 0 || dataset->features.columns == 0 || dataset->targets.rows == 0 || dataset->targets.columns == 0) {
+        return MLC_STATUS_INVALID_DIMENSIONS;
+    }
     if (training_dataset->features.data != NULL || training_dataset->features.columns != 0 || training_dataset->features.rows != 0 ||
         training_dataset->targets.data != NULL || training_dataset->targets.columns != 0 || training_dataset->targets.rows != 0) {
         return MLC_STATUS_INVALID_ARGUMENT;
@@ -276,3 +279,102 @@ MLCStatus mlc_dataset_train_test_split(const MLCDataset *dataset, double trainin
     return MLC_STATUS_SUCCESS;
 }
 
+
+MLCStatus mlc_standard_scaler_fit(const MLCDataset *dataset, MLCStandardScaler *scaler) {
+    if (dataset == NULL || scaler == NULL) {
+        return MLC_STATUS_INVALID_ARGUMENT;
+    }
+    if (dataset->features.data == NULL || dataset->targets.data == NULL) {
+        return MLC_STATUS_INVALID_ARGUMENT;
+    }
+    if (dataset->features.rows == 0 || dataset->features.columns == 0 || dataset->targets.rows == 0 || dataset->targets.columns == 0) {
+        return MLC_STATUS_INVALID_DIMENSIONS;
+    }
+    if (dataset->features.rows != dataset->targets.rows) {
+        return MLC_STATUS_DIMENSIONS_MISMATCH;
+    }
+    if (scaler->means.data != NULL || scaler->means.rows != 0 || scaler->means.columns != 0 ||
+        scaler->standard_deviations.data != NULL || scaler->standard_deviations.rows != 0 || scaler->standard_deviations.columns != 0) {
+        return MLC_STATUS_INVALID_ARGUMENT;
+    }
+    MLCStatus create_status = mlc_matrix_create(1, dataset->features.columns, &scaler->means);
+    if (create_status != MLC_STATUS_SUCCESS) {
+        return create_status;
+    }
+    create_status = mlc_matrix_create(1, dataset->features.columns, &scaler->standard_deviations);
+    if (create_status != MLC_STATUS_SUCCESS) {
+        mlc_matrix_free(&scaler->means);
+        return create_status;
+    }
+    for (size_t i = 0; i < dataset->features.columns; ++i) {
+        double sum = 0;
+        for (size_t j = 0; j < dataset->features.rows; ++j) {
+            size_t index = j * dataset->features.columns + i;
+            sum += dataset->features.data[index];
+        }
+        scaler->means.data[i] = sum / (double)dataset->features.rows;
+    }
+    for (size_t i = 0; i < dataset->features.columns; ++i) {
+        double square_differences_sum = 0;
+        for (size_t j = 0; j < dataset->features.rows; ++j) {
+            size_t index = j * dataset->features.columns + i;
+            double difference = dataset->features.data[index] - scaler->means.data[i];
+            square_differences_sum += difference * difference;
+        }
+        double variance = square_differences_sum / (double)dataset->features.rows;
+        double standard_deviation = sqrt(variance);
+        scaler->standard_deviations.data[i] = standard_deviation;
+    }
+    return MLC_STATUS_SUCCESS;
+}
+
+void mlc_standard_scaler_free(MLCStandardScaler *scaler) {
+    if (scaler == NULL) {
+        return;
+    }
+    mlc_matrix_free(&scaler->means);
+    mlc_matrix_free(&scaler->standard_deviations);
+}
+
+MLCStatus mlc_standard_scaler_transform(const MLCStandardScaler *scaler, MLCDataset *dataset) {
+    if (dataset == NULL || scaler == NULL) {
+        return MLC_STATUS_INVALID_ARGUMENT;
+    }
+    if (dataset->features.data == NULL || dataset->targets.data == NULL) {
+        return MLC_STATUS_INVALID_ARGUMENT;
+    }
+    if (dataset->features.rows == 0 || dataset->features.columns == 0 || dataset->targets.rows == 0 || dataset->targets.columns == 0) {
+        return MLC_STATUS_INVALID_DIMENSIONS;
+    }
+    if (dataset->features.rows != dataset->targets.rows) {
+        return MLC_STATUS_DIMENSIONS_MISMATCH;
+    }
+    if (scaler->means.data == NULL || scaler->standard_deviations.data == NULL){
+        return MLC_STATUS_INVALID_ARGUMENT;
+    }
+    if (scaler->means.rows != 1 || scaler->standard_deviations.rows != 1) {
+        return MLC_STATUS_INVALID_DIMENSIONS;
+    }
+    if (scaler->means.columns == 0 || scaler->standard_deviations.columns == 0) {
+        return MLC_STATUS_INVALID_DIMENSIONS;
+    }
+    if (scaler->means.columns != scaler->standard_deviations.columns) {
+        return MLC_STATUS_DIMENSIONS_MISMATCH;
+    }
+    if (scaler->means.columns != dataset->features.columns) {
+        return MLC_STATUS_DIMENSIONS_MISMATCH;
+    }
+    for (size_t i = 0; i < dataset->features.rows; ++i) {
+        for (size_t j = 0; j < dataset->features.columns; ++j) {
+            size_t index = i * dataset->features.columns + j;
+            double centered = dataset->features.data[index] - scaler->means.data[j];
+            if (scaler->standard_deviations.data[j] == 0) {
+                dataset->features.data[index] = centered;
+            }
+            else {
+                dataset->features.data[index] = centered / scaler->standard_deviations.data[j];
+            }
+        }
+    }
+    return MLC_STATUS_SUCCESS;
+}

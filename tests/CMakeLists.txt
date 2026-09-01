@@ -101,3 +101,9 @@ configure_file(
         COPYONLY
 )
 
+configure_file(
+        ${CMAKE_CURRENT_SOURCE_DIR}/data/edge_cases_standard_scaler.csv
+        ${CMAKE_CURRENT_BINARY_DIR}/edge_cases_standard_scaler.csv
+        COPYONLY
+)
+
