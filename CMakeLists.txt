@@ -16,6 +16,8 @@ add_library(MLC STATIC
         include/mlc/matrix.h
         include/mlc/dataset.h
         src/dataset.c
+        include/mlc/linear_regression.h
+        src/linear_regression.c
 )
 
 target_include_directories(MLC
