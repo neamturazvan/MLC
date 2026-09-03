@@ -7,6 +7,11 @@ add_executable(
         test_dataset.c
 )
 
+add_executable(
+        test_linear_regression
+        test_linear_regression.c
+)
+
 target_link_libraries(
         test_matrix
         PRIVATE
@@ -19,6 +24,12 @@ target_link_libraries(
             MLC
 )
 
+target_link_libraries(
+        test_linear_regression
+        PRIVATE
+        MLC
+)
+
 add_test(
         NAME matrix_tests
         COMMAND test_matrix
@@ -27,6 +38,11 @@ add_test(
 add_test(
         NAME dataset_tests
         COMMAND test_dataset
+)
+
+add_test(
+        NAME linear_regression_tests
+        COMMAND test_linear_regression
 )
 
 configure_file(
@@ -104,6 +120,18 @@ configure_file(
 configure_file(
         ${CMAKE_CURRENT_SOURCE_DIR}/data/edge_cases_standard_scaler.csv
         ${CMAKE_CURRENT_BINARY_DIR}/edge_cases_standard_scaler.csv
+        COPYONLY
+)
+
+configure_file(
+        ${CMAKE_CURRENT_SOURCE_DIR}/data/linear_regression_2x+1.csv
+        ${CMAKE_CURRENT_BINARY_DIR}/linear_regression_2x+1.csv
+        COPYONLY
+)
+
+configure_file(
+        ${CMAKE_CURRENT_SOURCE_DIR}/data/multi_output_training.csv
+        ${CMAKE_CURRENT_BINARY_DIR}/multi_output_training.csv
         COPYONLY
 )
 
