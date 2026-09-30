@@ -3,6 +3,11 @@ add_executable(test_matrix
 )
 
 add_executable(
+        test_loss
+        test_loss.c
+)
+
+add_executable(
         test_dataset
         test_dataset.c
 )
@@ -10,6 +15,17 @@ add_executable(
 add_executable(
         test_linear_regression
         test_linear_regression.c
+)
+
+add_executable(
+        test_activation
+        test_activation.c
+)
+
+target_link_libraries(
+        test_loss
+        PRIVATE
+        MLC
 )
 
 target_link_libraries(
@@ -30,6 +46,17 @@ target_link_libraries(
         MLC
 )
 
+target_link_libraries(
+        test_activation
+        PRIVATE
+        MLC
+)
+
+add_test(
+        NAME loss_tests
+        COMMAND test_loss
+)
+
 add_test(
         NAME matrix_tests
         COMMAND test_matrix
@@ -43,6 +70,11 @@ add_test(
 add_test(
         NAME linear_regression_tests
         COMMAND test_linear_regression
+)
+
+add_test(
+        NAME activation_tests
+        COMMAND test_activation
 )
 
 configure_file(

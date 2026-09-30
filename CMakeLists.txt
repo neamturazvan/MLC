@@ -18,6 +18,10 @@ add_library(MLC STATIC
         src/dataset.c
         include/mlc/linear_regression.h
         src/linear_regression.c
+        include/mlc/activation.h
+        src/activation.c
+        include/mlc/loss.h
+        src/loss.c
 )
 
 target_include_directories(MLC
