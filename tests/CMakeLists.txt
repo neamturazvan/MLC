@@ -8,6 +8,12 @@ add_executable(
 )
 
 add_executable(
+        test_logistic_regression
+        test_logistic_regression.c
+)
+
+
+add_executable(
         test_dataset
         test_dataset.c
 )
@@ -20,6 +26,12 @@ add_executable(
 add_executable(
         test_activation
         test_activation.c
+)
+
+target_link_libraries(
+        test_logistic_regression
+        PRIVATE
+        MLC
 )
 
 target_link_libraries(
@@ -50,6 +62,11 @@ target_link_libraries(
         test_activation
         PRIVATE
         MLC
+)
+
+add_test(
+        NAME logistic_regression_tests
+        COMMAND test_logistic_regression
 )
 
 add_test(

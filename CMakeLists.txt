@@ -22,6 +22,8 @@ add_library(MLC STATIC
         src/activation.c
         include/mlc/loss.h
         src/loss.c
+        include/mlc/logistic_regression.h
+        src/logistic_regression.c
 )
 
 target_include_directories(MLC
